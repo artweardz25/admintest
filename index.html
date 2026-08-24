@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARTWEAR DZ — Administration</title>
+<link rel="stylesheet" href="css/admin.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script><script src="../js/supabase.js"></script><script src="../js/supabase-store.js"></script>
+  <link rel="stylesheet" href="icon-mode.css">
+<link rel="stylesheet" href="all-ui-icons-v24.css">
+<link rel="stylesheet" href="search-theme-icons-v25.css">
+<link rel="stylesheet" href="theme-light-dark-icons-v27.css">
+
+<style id="artwear-panel-logo-v44">
+.panel-brand-logo{
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  min-height:72px;
+  padding:14px 18px;
+  border-bottom:1px solid rgba(255,255,255,.10);
+  box-sizing:border-box;
+}
+.panel-brand-logo img{
+  display:block;
+  width:auto;
+  height:52px;
+  max-width:170px;
+  object-fit:contain;
+  object-position:left center;
+}
+@media (max-width:700px){
+  .panel-brand-logo{justify-content:center;padding:12px;}
+  .panel-brand-logo img{height:46px;max-width:150px;}
+}
+</style>
+
+  <link rel="stylesheet" href="page-transition.css">
+</head>
+<body>
+<div class="admin-shell">
+  <aside class="sidebar"> <div class="brand"><div class="brand-mark"><img src="assets/artwear-panel-logo.png" alt=""></div><div><strong>ARTWEAR DZ</strong><small>WEAR YOUR PASSION</small></div></div>
+    <nav>
+      <button class="active" data-tab="dashboard"><span>⌂</span> Tableau de bord</button>
+      <button data-tab="products"><span>□</span> Produits</button>
+      <button data-tab="orders"><span>▤</span> Commandes</button>
+      <button data-tab="delivery"><span>⌁</span> Livraison</button>
+      <button data-tab="appearance"><span>◉</span> Apparence</button>
+      <button data-tab="categories"><span>◇</span> Catégories</button>
+      <button data-tab="pages"><span>▤</span> Pages</button>
+      <button data-tab="settings"><span>⚙</span> Paramètres</button>
+      <button id="logout"><span>↪</span> Déconnexion</button>
+    </nav>
+    <div class="sidebar-footer"><b>🚚 Livraison dans les 58 wilayas</b><small>Paiement à la livraison</small></div>
+  </aside>
+
+  <main class="main">
+    <header class="admin-topbar"><div class="mobile-title">☰ <span id="pageTitle">Tableau de bord</span></div><div class="top-actions"><button class="theme-chip" type="button">◐ Mode sombre</button><button class="icon-btn">♧</button><div class="admin-user"><span class="avatar">A</span><div><b>Admin</b><small>Administrateur</small></div><span>⌄</span></div></div></header>
+    <div id="authNotice" class="notice hidden"></div>
+
+    <section id="dashboard" class="tab">
+      <div class="top"><div><h1>Tableau de bord</h1><p>Vue rapide de votre boutique.</p></div></div>
+      <div class="stat-grid dashboard-stats"><div class="stat"><span>Produits</span><b id="statProducts">0</b></div><div class="stat"><span>Total des commandes</span><b id="statOrders">0</b></div><div class="stat"><span>Nouvelles commandes aujourd’hui</span><b id="statNew">0</b><small id="statNewDate">Aujourd’hui</small></div><div class="stat"><span>Visiteurs uniques</span><b id="statVisitors">0</b><small id="statVisitorsToday">Aujourd’hui : 0</small></div></div>
+    </section>
+
+    <section id="products" class="tab hidden">
+      <div class="top"><div><h1>Produits</h1><p>Ajoutez, modifiez ou supprimez vos produits.</p></div><button class="admin-btn auto" id="newProduct">+ AJOUTER UN PRODUIT</button></div>
+      <div id="productFormPanel" class="panel hidden"><h2 id="productFormTitle">Ajouter un produit</h2><form id="productForm"><input type="hidden" name="id"><div class="grid2"><label>Nom<input name="name" required></label><label>Prix (DA)<input name="price" type="number" min="0" required></label><label>Catégorie<select id="productCategorySelect" name="category"></select></label><label>Stock<input name="stock" type="number" min="0" value="0"></label></div><label>Description<textarea name="description" rows="4" placeholder="Description du produit…"></textarea></label><label>Bio<textarea name="bio" rows="5" placeholder="100% coton premium
+Impression DTF haute qualité
+Coupe confortable
+Disponible en S, M, L, XL"></textarea></label><label>Tailles<input name="sizes" value="S,M,L,XL"></label><div class="grid2"><label>GUIDE DES TAILLES<select id="productSizeGuideSelect" name="size_guide_id"><option value="">Aucun guide</option></select></label><label>TYPE DE GUIDE<select id="productSizeGuideType" name="size_guide_type"><option value="tricot">TRICOT</option><option value="pantalon">PANTALON</option><option value="les_deux">LES DEUX</option></select></label></div><div class="checks"><label><input name="new" type="checkbox"> Nouveau</label><label><input name="popular" type="checkbox"> Meilleure vente</label></div><label>Images du produit<input name="images" type="file" accept="image/*" multiple></label><div id="currentImages"></div><div class="actions"><button class="admin-btn auto" type="submit">ENREGISTRER</button><button class="btn-small" type="button" id="cancelProduct">ANNULER</button></div><div id="productMsg"></div></form></div>
+      <div class="panel table-wrap"><table class="product-table"><thead><tr><th>Image</th><th>Produit</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Actions</th></tr></thead><tbody id="productsBody"></tbody></table></div>
+    </section>
+
+    <section id="orders" class="tab hidden">
+      <div class="top"><div><h1>Commandes</h1><p>Consultez les commandes par jour et exportez la journée sélectionnée en Excel.</p></div><div class="actions"><button class="btn-small" id="refreshOrders">↻ Actualiser</button><button class="admin-btn auto" id="exportOrdersExcel">⇩ Excel du jour</button></div></div>
+      <div class="panel orders-toolbar">
+        <div class="orders-date-controls">
+          <button class="btn-small" id="ordersPrevDay" type="button">←</button>
+          <label>Date des commandes<input id="ordersDate" type="date"></label>
+          <button class="btn-small" id="ordersNextDay" type="button">→</button>
+          <button class="btn-small" id="ordersToday" type="button">Aujourd’hui</button>
+          <label>Statut
+            <select id="ordersStatusFilter">
+              <option value="all">Toutes les commandes</option>
+              <option value="Nouveau">Nouveau</option>
+              <option value="Confirmée">Confirmée</option>
+              <option value="Expédiée">Expédiée</option>
+              <option value="Livrée">Livrée</option>
+              <option value="Annulée">Annulée</option>
+            </select>
+          </label>
+        </div>
+        <div class="orders-summary"><b id="ordersDayCount">0</b> commande(s) pour le <span id="ordersDayLabel">—</span></div>
+      </div>
+      <div class="panel table-wrap"><table class="order-table"><thead><tr><th>Commande</th><th>Client</th><th>Livraison</th><th>Total</th><th>Statut</th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+    </section>
+
+    <section id="delivery" class="tab hidden"><div class="top"><div><h1>Livraison</h1><p>Ajoutez, modifiez ou désactivez les wilayas, puis gérez leurs bureaux et communes.</p></div><div class="top-actions"><button type="button" class="btn-small" id="addWilaya">+ AJOUTER UNE WILAYA</button><button class="admin-btn auto" id="saveDelivery">ENREGISTRER</button></div></div><div class="panel"><div class="grid2"><label>Prix domicile par défaut<input id="defaultHome" type="number" min="0"></label><label>Prix bureau par défaut<input id="defaultOffice" type="number" min="0"></label></div><div id="deliveryMsg"></div><div id="deliveryBody" class="delivery-list"></div></div></section>
+
+    <section id="appearance" class="tab hidden">
+      <div class="top appearance-header"><div><h1>Apparence du magasin</h1><p>Gérez le logo et l’image principale (Hero) pour les modes clair et sombre.</p></div><button class="save-main" id="saveAppearance">▣ Enregistrer les modifications</button></div>
+<div class="panel appearance-language-panel"><div class="panel-title"><div><h2>🌐 Paramètres dépendants de la langue</h2><p>Choisissez la langue à modifier. Les textes et la position du menu sont enregistrés séparément.</p></div><span class="badge" id="appearanceLanguageBadge">FRANÇAIS</span></div><div class="language-tabs"><button type="button" class="btn-small appearance-lang-tab active" data-appearance-lang="fr">🇫🇷 Français</button><button type="button" class="btn-small appearance-lang-tab" data-appearance-lang="ar">🇩🇿 العربية</button></div></div>
+
+      <div class="appearance-layout">
+        <div class="appearance-main">
+          <div class="panel appearance-panel logo-manager-panel"><div class="panel-title"><div><h2>Logos du magasin</h2><p>Ajoutez un seul PNG complet pour chaque mode. Le PNG peut contenir le symbole du logo et le texte <b>ARTWEAR DZ / WEAR YOUR PASSION</b> côte à côte.</p></div><span class="badge">1 PNG PAR MODE · ZONE RECTANGULAIRE</span></div>
+            <div class="logo-mode-grid">
+              <div class="logo-mode-card light-logo-card">
+                <div class="logo-mode-head"><div><h3>☼ MODE CLAIR</h3><small>Ce fichier sera utilisé uniquement lorsque le magasin est en mode clair.</small></div><span>PNG</span></div>
+                <div id="logoLightPreview" class="logo-slot-preview light-preview" data-logo-slot="mainLight"><span>Aucun logo clair.</span></div>
+                <div class="logo-position-controls">
+                  <label>Position horizontale <input id="logoMainLightX" type="range" min="-180" max="180" step="1" value="0"></label>
+                  <label>Position verticale <input id="logoMainLightY" type="range" min="-50" max="50" step="1" value="0"></label>
+                  <label>Taille <input id="logoMainLightScale" type="range" min="50" max="250" step="1" value="100"></label>
+                </div>
+                <div class="logo-upload-row"><label class="upload-btn">↥ Ajouter le PNG clair<input id="storeLogoLight" type="file" accept="image/png"></label><button type="button" class="delete-btn" id="deleteLogoLight">♜ Supprimer</button></div>
+                <small class="logo-help">هذه هي مساحة الشعار كاملة. ارفع PNG واحداً يحتوي على الرمز والكتابة معاً، ثم حرّكه أو كبّره/صغّره داخل الإطار.</small>
+              </div>
+              <div class="logo-mode-card dark-logo-card">
+                <div class="logo-mode-head"><div><h3>☾ MODE SOMBRE</h3><small>Ce fichier sera utilisé uniquement lorsque le magasin est en mode sombre.</small></div><span>PNG</span></div>
+                <div id="logoDarkPreview" class="logo-slot-preview dark-preview" data-logo-slot="mainDark"><span>Aucun logo sombre.</span></div>
+                <div class="logo-position-controls">
+                  <label>Position horizontale <input id="logoMainDarkX" type="range" min="-180" max="180" step="1" value="0"></label>
+                  <label>Position verticale <input id="logoMainDarkY" type="range" min="-50" max="50" step="1" value="0"></label>
+                  <label>Taille <input id="logoMainDarkScale" type="range" min="50" max="250" step="1" value="100"></label>
+                </div>
+                <div class="logo-upload-row"><label class="upload-btn">↥ Ajouter le PNG sombre<input id="storeLogoDark" type="file" accept="image/png"></label><button type="button" class="delete-btn" id="deleteLogoDark">♜ Supprimer</button></div>
+                <small class="logo-help">PNG واحد فقط لكل وضع: الرمز + الكتابة الجانبية. يمكنك تغيير الموضع والحجم داخل المساحة المحددة.</small>
+              </div>
+            </div>
+            <div class="logo-rule-note">⚠️ Les deux fichiers sont indépendants : le logo clair ne remplace jamais automatiquement le logo sombre, et inversement.</div>
+          </div>
+
+          <div class="panel appearance-panel nav-position-panel"><div class="panel-title"><div><h2>Position du menu principal</h2><p>Déplacez les liens <b>ACCUEIL · BOUTIQUE · À PROPOS · CONTACT</b> vers la gauche ou vers la droite dans la barre supérieure.</p></div><span class="badge">MENU · GAUCHE / DROITE</span></div><div class="nav-position-control"><div class="nav-position-head"><strong>Position horizontale</strong><span id="navPositionValue">0 px</span></div><div class="nav-position-row"><button type="button" class="btn-small" id="navPositionMinus">←</button><input id="navPositionX" type="range" min="-180" max="180" step="1" value="0"><button type="button" class="btn-small" id="navPositionPlus">→</button></div><div class="nav-position-hints"><span>← Gauche</span><button type="button" class="btn-small" id="navPositionReset">↺ Centrer</button><span>Droite →</span></div><small class="hint">Le déplacement concerne uniquement les 4 liens du menu, pas le logo ni les icônes à droite.</small><div class="actions" style="margin-top:12px"><button type="button" class="save-main" id="navPositionSave">▣ Enregistrer la position</button></div></div></div>
+          <div class="panel appearance-panel topbar-editor-panel"><div class="panel-title"><div><h2>Barre supérieure du magasin</h2><p>Modifiez les deux messages affichés tout en haut du site et choisissez leur alignement.</p></div><span class="badge">TEXTE · GAUCHE / CENTRE / DROITE</span></div>
+            <div class="topbar-editor-grid">
+              <div class="topbar-editor-card"><h3>Message gauche</h3><label>Texte<input id="topbarLeftText" type="text" maxlength="120" placeholder="💳 Paiement à la livraison"></label><label>Alignement<select id="topbarLeftAlign"><option value="left">Gauche</option><option value="center">Centre</option><option value="right">Droite</option></select></label></div>
+              <div class="topbar-editor-card"><h3>Message droit</h3><label>Texte<input id="topbarRightText" type="text" maxlength="120" placeholder="🚚 Livraison dans les 58 wilayas"></label><label>Alignement<select id="topbarRightAlign"><option value="left">Gauche</option><option value="center">Centre</option><option value="right">Droite</option></select></label></div>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>Image principale de l’accueil (Hero)</h2><p>Modifiez les textes affichés sur le Hero et choisissez une image différente pour chaque mode.</p></div><span class="badge">HERO · TEXTES + IMAGE</span></div>
+            <div class="hero-text-editor">
+              <div class="hero-text-grid">
+                <label>Petit texte supérieur<input id="heroEyebrowText" type="text" maxlength="120" placeholder="ANIME · SPORT · GAMING · CULTURE"></label>
+                <label>Titre principal<textarea id="heroTitleText" rows="3" maxlength="180" placeholder="PORTE CE
+QUE TU
+AIMES"></textarea><small>Vous pouvez mettre chaque ligne sur une ligne séparée.</small></label>
+                <label>Description<textarea id="heroDescriptionText" rows="3" maxlength="300" placeholder="Des designs uniques pour les passionnés d’anime, de sport, de gaming et de culture."></textarea></label>
+              </div>
+            </div>
+            <div class="media-two">
+              <div class="mode-card"><div class="mode-head"><div><h3>☼ Image mode clair (jour)</h3><small>Visible en mode clair.</small></div></div><div id="heroLightPreview" class="hero-preview"><span>Aucune image claire.</span></div><div class="media-actions"><label class="upload-btn">↥ Changer l’image<input id="heroImageLight" type="file" accept="image/png,image/jpeg,image/webp"></label><button type="button" class="delete-btn" id="deleteHeroLight">♜ Supprimer</button></div></div>
+              <div class="mode-card"><div class="mode-head"><div><h3>☾ Image mode sombre (nuit)</h3><small>Visible en mode sombre.</small></div></div><div id="heroDarkPreview" class="hero-preview"><span>Aucune image sombre.</span></div><div class="media-actions"><label class="upload-btn">↥ Changer l’image<input id="heroImageDark" type="file" accept="image/png,image/jpeg,image/webp"></label><button type="button" class="delete-btn" id="deleteHeroDark">♜ Supprimer</button></div></div>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>Arrière-plan du magasin</h2><p>Choisissez séparément l’arrière-plan du mode clair et du mode sombre. Vous pouvez remplacer les deux images depuis ce panneau.</p></div><span class="badge">LIGHT / DARK · PNG / JPG / WEBP</span></div>
+            <div class="media-two">
+              <div class="mode-card"><div class="mode-head"><div><h3>☼ Arrière-plan mode clair</h3><small>Utilisé lorsque le magasin est en mode clair.</small></div></div><div id="backgroundLightPreview" class="hero-preview"><span>Aucun arrière-plan clair.</span></div><div class="media-actions"><label class="upload-btn">↥ Changer l’arrière-plan<input id="backgroundImageLight" type="file" accept="image/png,image/jpeg,image/webp"></label><button type="button" class="delete-btn" id="deleteBackgroundLight">♜ Supprimer</button></div></div>
+              <div class="mode-card"><div class="mode-head"><div><h3>☾ Arrière-plan mode sombre</h3><small>Utilisé lorsque le magasin est en mode sombre.</small></div></div><div id="backgroundDarkPreview" class="hero-preview"><span>Aucun arrière-plan sombre.</span></div><div class="media-actions"><label class="upload-btn">↥ Changer l’arrière-plan<input id="backgroundImageDark" type="file" accept="image/png,image/jpeg,image/webp"></label><button type="button" class="delete-btn" id="deleteBackgroundDark">♜ Supprimer</button></div></div>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>Icônes du magasin</h2><p>Pour chaque icône, choisissez séparément une icône pour le mode clair et une autre pour le mode sombre. Chaque mode accepte Emoji / symbole ou PNG transparent.</p></div><span class="badge">LIGHT / DARK · EMOJI / PNG</span></div>
+            <div class="store-icons-mode-grid">              <div class="store-icon-editor"><b>IMPRESSION DTF</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightDtf"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightDtf"><input id="iconLightDtf" type="text" maxlength="16" placeholder="▣"></div><div id="iconPngWrapLightDtf" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightDtf" type="file" accept="image/png"></label></div><div id="iconPreviewLightDtf" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkDtf"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkDtf"><input id="iconDarkDtf" type="text" maxlength="16" placeholder="▣"></div><div id="iconPngWrapDarkDtf" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkDtf" type="file" accept="image/png"></label></div><div id="iconPreviewDarkDtf" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>TISSUS PREMIUM</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightFabric"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightFabric"><input id="iconLightFabric" type="text" maxlength="16" placeholder="♢"></div><div id="iconPngWrapLightFabric" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightFabric" type="file" accept="image/png"></label></div><div id="iconPreviewLightFabric" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkFabric"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkFabric"><input id="iconDarkFabric" type="text" maxlength="16" placeholder="♢"></div><div id="iconPngWrapDarkFabric" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkFabric" type="file" accept="image/png"></label></div><div id="iconPreviewDarkFabric" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>LIVRAISON 58 WILAYAS</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightDelivery"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightDelivery"><input id="iconLightDelivery" type="text" maxlength="16" placeholder="▱"></div><div id="iconPngWrapLightDelivery" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightDelivery" type="file" accept="image/png"></label></div><div id="iconPreviewLightDelivery" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkDelivery"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkDelivery"><input id="iconDarkDelivery" type="text" maxlength="16" placeholder="▱"></div><div id="iconPngWrapDarkDelivery" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkDelivery" type="file" accept="image/png"></label></div><div id="iconPreviewDarkDelivery" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>SERVICE CLIENT 7/7</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightSupport"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightSupport"><input id="iconLightSupport" type="text" maxlength="16" placeholder="◌"></div><div id="iconPngWrapLightSupport" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightSupport" type="file" accept="image/png"></label></div><div id="iconPreviewLightSupport" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkSupport"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkSupport"><input id="iconDarkSupport" type="text" maxlength="16" placeholder="◌"></div><div id="iconPngWrapDarkSupport" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkSupport" type="file" accept="image/png"></label></div><div id="iconPreviewDarkSupport" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>PANIER</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightCart"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightCart"><input id="iconLightCart" type="text" maxlength="16" placeholder="🛒"></div><div id="iconPngWrapLightCart" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightCart" type="file" accept="image/png"></label></div><div id="iconPreviewLightCart" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkCart"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkCart"><input id="iconDarkCart" type="text" maxlength="16" placeholder="🛒"></div><div id="iconPngWrapDarkCart" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkCart" type="file" accept="image/png"></label></div><div id="iconPreviewDarkCart" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>PAIEMENT À LA LIVRAISON</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightPayment"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightPayment"><input id="iconLightPayment" type="text" maxlength="16" placeholder="💳"></div><div id="iconPngWrapLightPayment" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightPayment" type="file" accept="image/png"></label></div><div id="iconPreviewLightPayment" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkPayment"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkPayment"><input id="iconDarkPayment" type="text" maxlength="16" placeholder="💳"></div><div id="iconPngWrapDarkPayment" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkPayment" type="file" accept="image/png"></label></div><div id="iconPreviewDarkPayment" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>FACEBOOK</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightFacebook"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightFacebook"><input id="iconLightFacebook" type="text" maxlength="16" placeholder="f"></div><div id="iconPngWrapLightFacebook" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightFacebook" type="file" accept="image/png"></label></div><div id="iconPreviewLightFacebook" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkFacebook"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkFacebook"><input id="iconDarkFacebook" type="text" maxlength="16" placeholder="f"></div><div id="iconPngWrapDarkFacebook" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkFacebook" type="file" accept="image/png"></label></div><div id="iconPreviewDarkFacebook" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>INSTAGRAM</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightInstagram"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightInstagram"><input id="iconLightInstagram" type="text" maxlength="16" placeholder="◎"></div><div id="iconPngWrapLightInstagram" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightInstagram" type="file" accept="image/png"></label></div><div id="iconPreviewLightInstagram" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkInstagram"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkInstagram"><input id="iconDarkInstagram" type="text" maxlength="16" placeholder="◎"></div><div id="iconPngWrapDarkInstagram" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkInstagram" type="file" accept="image/png"></label></div><div id="iconPreviewDarkInstagram" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>TIKTOK</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightTiktok"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightTiktok"><input id="iconLightTiktok" type="text" maxlength="16" placeholder="♪"></div><div id="iconPngWrapLightTiktok" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightTiktok" type="file" accept="image/png"></label></div><div id="iconPreviewLightTiktok" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkTiktok"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkTiktok"><input id="iconDarkTiktok" type="text" maxlength="16" placeholder="♪"></div><div id="iconPngWrapDarkTiktok" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkTiktok" type="file" accept="image/png"></label></div><div id="iconPreviewDarkTiktok" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>RECHERCHE</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightSearch"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightSearch"><input id="iconLightSearch" type="text" maxlength="16" placeholder="🔍"></div><div id="iconPngWrapLightSearch" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightSearch" type="file" accept="image/png"></label></div><div id="iconPreviewLightSearch" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkSearch"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkSearch"><input id="iconDarkSearch" type="text" maxlength="16" placeholder="🔍"></div><div id="iconPngWrapDarkSearch" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkSearch" type="file" accept="image/png"></label></div><div id="iconPreviewDarkSearch" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>LIVRAISON À DOMICILE — CHECKOUT</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightDeliveryHome"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightDeliveryHome"><input id="iconLightDeliveryHome" type="text" maxlength="16" placeholder="🏠"></div><div id="iconPngWrapLightDeliveryHome" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightDeliveryHome" type="file" accept="image/png"></label></div><div id="iconPreviewLightDeliveryHome" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkDeliveryHome"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkDeliveryHome"><input id="iconDarkDeliveryHome" type="text" maxlength="16" placeholder="🏠"></div><div id="iconPngWrapDarkDeliveryHome" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkDeliveryHome" type="file" accept="image/png"></label></div><div id="iconPreviewDarkDeliveryHome" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor"><b>LIVRAISON AU BUREAU — CHECKOUT</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ MODE CLAIR</strong><select id="iconModeLightDeliveryOffice"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightDeliveryOffice"><input id="iconLightDeliveryOffice" type="text" maxlength="16" placeholder="🏢"></div><div id="iconPngWrapLightDeliveryOffice" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightDeliveryOffice" type="file" accept="image/png"></label></div><div id="iconPreviewLightDeliveryOffice" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ MODE SOMBRE</strong><select id="iconModeDarkDeliveryOffice"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkDeliveryOffice"><input id="iconDarkDeliveryOffice" type="text" maxlength="16" placeholder="🏢"></div><div id="iconPngWrapDarkDeliveryOffice" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkDeliveryOffice" type="file" accept="image/png"></label></div><div id="iconPreviewDarkDeliveryOffice" class="store-icon-preview"></div></div>
+              </div></div>              <div class="store-icon-editor theme-store-icon-editor"><b>BOUTON MODE CLAIR / SOMBRE</b><div class="store-icon-mode-pair">
+                <div class="icon-mode-box"><strong>☼ ICÔNE EN MODE CLAIR</strong><select id="iconModeLightTheme"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapLightTheme"><input id="iconLightTheme" type="text" maxlength="16" placeholder="🌙"></div><div id="iconPngWrapLightTheme" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngLightTheme" type="file" accept="image/png"></label></div><div id="iconPreviewLightTheme" class="store-icon-preview"></div></div>
+                <div class="icon-mode-box"><strong>☾ ICÔNE EN MODE SOMBRE</strong><select id="iconModeDarkTheme"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="iconEmojiWrapDarkTheme"><input id="iconDarkTheme" type="text" maxlength="16" placeholder="☀️"></div><div id="iconPngWrapDarkTheme" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="iconPngDarkTheme" type="file" accept="image/png"></label></div><div id="iconPreviewDarkTheme" class="store-icon-preview"></div></div>
+              </div></div>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel delivery-text-editor-panel"><div class="panel-title"><div><h2>Textes du mode de livraison</h2><p>Modifiez toutes les écritures affichées dans la section « MODE DE LIVRAISON » de la page de commande.</p></div><span class="badge">CHECKOUT · TEXTES</span></div>
+            <div class="grid2">
+              <label><b>Titre principal</b><input id="deliveryTextTitle" type="text" maxlength="80" placeholder="MODE DE LIVRAISON"></label>
+              <label><b>Livraison à domicile — titre</b><input id="deliveryHomeTitle" type="text" maxlength="80" placeholder="Livraison à domicile"></label>
+              <label><b>Livraison à domicile — texte</b><input id="deliveryHomeText" type="text" maxlength="120" placeholder="Votre adresse complète"></label>
+              <label><b>Livraison au bureau — titre</b><input id="deliveryOfficeTitle" type="text" maxlength="80" placeholder="Livraison au bureau"></label>
+              <label><b>Livraison au bureau — texte</b><input id="deliveryOfficeText" type="text" maxlength="120" placeholder="Point / bureau de livraison"></label>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel checkout-text-editor-panel"><div class="panel-title"><div><h2>Textes de la page de paiement</h2><p>Modifiez les titres, libellés, placeholders et textes affichés sur toute la page de commande/paiement.</p></div><span class="badge">CHECKOUT · TEXTES</span></div>
+            <div class="grid2 checkout-text-grid">
+              <label><b>Titre de la page</b><input id="checkoutTitle" type="text" maxlength="100" placeholder="INFORMATIONS DE LIVRAISON"></label>
+              <label><b>Description</b><input id="checkoutSubtitle" type="text" maxlength="180" placeholder="Choisissez le mode de livraison puis remplissez vos informations."></label>
+              <label><b>Nom et prénom — libellé</b><input id="checkoutNameLabel" type="text" maxlength="80" placeholder="Nom et prénom"></label>
+              <label><b>Nom et prénom — placeholder</b><input id="checkoutNamePlaceholder" type="text" maxlength="120" placeholder="Ex: Mohamed Ali"></label>
+              <label><b>Téléphone — libellé</b><input id="checkoutPhoneLabel" type="text" maxlength="80" placeholder="Numéro de téléphone"></label>
+              <label><b>Téléphone — placeholder</b><input id="checkoutPhonePlaceholder" type="text" maxlength="120" placeholder="05 / 06 / 07 XX XX XX XX"></label>
+              <label><b>Wilaya — libellé</b><input id="checkoutWilayaLabel" type="text" maxlength="80" placeholder="Wilaya"></label>
+              <label><b>Wilaya — choix vide</b><input id="checkoutWilayaPlaceholder" type="text" maxlength="80" placeholder="Choisir"></label>
+              <label><b>Commune — libellé</b><input id="checkoutCommuneLabel" type="text" maxlength="80" placeholder="Commune"></label>
+              <label><b>Commune — choix vide</b><input id="checkoutCommunePlaceholder" type="text" maxlength="100" placeholder="Choisir la commune"></label>
+              <label><b>Bureau / point — libellé</b><input id="checkoutOfficeLabel" type="text" maxlength="100" placeholder="Bureau / point de livraison"></label>
+              <label><b>Bureau — choix vide</b><input id="checkoutOfficePlaceholder" type="text" maxlength="100" placeholder="Choisir le bureau"></label>
+              <label><b>Adresse — libellé</b><input id="checkoutAddressLabel" type="text" maxlength="80" placeholder="Adresse complète"></label>
+              <label><b>Adresse — placeholder</b><input id="checkoutAddressPlaceholder" type="text" maxlength="150" placeholder="Cité, rue, numéro..."></label>
+              <label><b>Titre paiement</b><input id="checkoutPaymentTitle" type="text" maxlength="80" placeholder="PAIEMENT"></label>
+              <label><b>Mode de paiement</b><input id="checkoutPaymentMethod" type="text" maxlength="100" placeholder="Paiement à la livraison"></label>
+              <label><b>Description paiement</b><input id="checkoutPaymentDescription" type="text" maxlength="150" placeholder="Vous payez à la réception de votre colis."></label>
+              <label><b>Bouton de confirmation</b><input id="checkoutSubmitButton" type="text" maxlength="100" placeholder="CONFIRMER LA COMMANDE"></label>
+              <label><b>Titre résumé</b><input id="checkoutSummaryTitle" type="text" maxlength="80" placeholder="VOTRE COMMANDE"></label>
+              <label><b>Sous-total</b><input id="checkoutSubtotalLabel" type="text" maxlength="60" placeholder="Sous-total"></label>
+              <label><b>Livraison — résumé</b><input id="checkoutShippingLabel" type="text" maxlength="60" placeholder="Livraison"></label>
+              <label><b>Total</b><input id="checkoutTotalLabel" type="text" maxlength="60" placeholder="Total"></label>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>3 barres du site</h2><p>Contrôlez séparément l’arrière-plan de la barre supérieure, de l’en-tête principal et du pied de page en mode clair et sombre.</p></div><span class="badge">3 BARRES · LIGHT / DARK</span></div>
+            <div class="site-bars-editor grid3">
+              <div class="site-bar-card"><h3>Barre supérieure</h3><label><b>MODE CLAIR — couleur</b><input id="siteBarTopLightBg" type="color" value="#f5f5f5"></label><label><b>MODE CLAIR — transparence</b><input id="siteBarTopLightOpacity" type="range" min="0" max="100" step="1" value="100"><output id="siteBarTopLightOpacityValue">100%</output></label><label><b>MODE SOMBRE — couleur</b><input id="siteBarTopDarkBg" type="color" value="#101010"></label><label><b>MODE SOMBRE — transparence</b><input id="siteBarTopDarkOpacity" type="range" min="0" max="100" step="1" value="100"><output id="siteBarTopDarkOpacityValue">100%</output></label></div>
+              <div class="site-bar-card"><h3>En-tête principal</h3><label><b>MODE CLAIR — couleur</b><input id="siteBarHeaderLightBg" type="color" value="#f5f5f5"></label><label><b>MODE CLAIR — transparence</b><input id="siteBarHeaderLightOpacity" type="range" min="0" max="100" step="1" value="100"><output id="siteBarHeaderLightOpacityValue">100%</output></label><label><b>MODE SOMBRE — couleur</b><input id="siteBarHeaderDarkBg" type="color" value="#101010"></label><label><b>MODE SOMBRE — transparence</b><input id="siteBarHeaderDarkOpacity" type="range" min="0" max="100" step="1" value="100"><output id="siteBarHeaderDarkOpacityValue">100%</output></label></div>
+              <div class="site-bar-card"><h3>Pied de page</h3><label><b>MODE CLAIR — couleur</b><input id="siteBarFooterLightBg" type="color" value="#f5f5f5"></label><label><b>MODE CLAIR — transparence</b><input id="siteBarFooterLightOpacity" type="range" min="0" max="100" step="1" value="100"><output id="siteBarFooterLightOpacityValue">100%</output></label><label><b>MODE SOMBRE — couleur</b><input id="siteBarFooterDarkBg" type="color" value="#101010"></label><label><b>MODE SOMBRE — transparence</b><input id="siteBarFooterDarkOpacity" type="range" min="0" max="100" step="1" value="100"><output id="siteBarFooterDarkOpacityValue">100%</output></label></div>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>Cartes et encadrés du site</h2><p>Contrôlez séparément la couleur et la transparence des principaux carrés et encadrés gris, en mode clair et sombre.</p></div><span class="badge">CARTES · LIGHT / DARK</span></div>
+            <div class="card-styles-editor grid3">
+              <div class="site-bar-card"><h3>Cartes produits</h3><label><b>MODE CLAIR — couleur</b><input id="cardProductCardLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardProductCardLightOpacity" type="range" min="0" max="100" step="1" value="6"><output id="cardProductCardLightOpacityValue">6%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardProductCardDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardProductCardDarkOpacity" type="range" min="0" max="100" step="1" value="5"><output id="cardProductCardDarkOpacityValue">5%</output></label></div>
+                            <div class="site-bar-card"><h3>Description & guide des tailles</h3><label><b>MODE CLAIR — couleur</b><input id="cardProductInfoLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardProductInfoLightOpacity" type="range" min="0" max="100" step="1" value="6"><output id="cardProductInfoLightOpacityValue">6%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardProductInfoDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardProductInfoDarkOpacity" type="range" min="0" max="100" step="1" value="5"><output id="cardProductInfoDarkOpacityValue">5%</output></label></div>
+              <div class="site-bar-card"><h3>Avantages produit</h3><label><b>MODE CLAIR — couleur</b><input id="cardProductServicesLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardProductServicesLightOpacity" type="range" min="0" max="100" step="1" value="5"><output id="cardProductServicesLightOpacityValue">5%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardProductServicesDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardProductServicesDarkOpacity" type="range" min="0" max="100" step="1" value="4"><output id="cardProductServicesDarkOpacityValue">4%</output></label></div>
+              <div class="site-bar-card"><h3>Étapes panier</h3><label><b>MODE CLAIR — couleur</b><input id="cardCheckoutStepsLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardCheckoutStepsLightOpacity" type="range" min="0" max="100" step="1" value="5"><output id="cardCheckoutStepsLightOpacityValue">5%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardCheckoutStepsDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardCheckoutStepsDarkOpacity" type="range" min="0" max="100" step="1" value="4"><output id="cardCheckoutStepsDarkOpacityValue">4%</output></label></div>
+              <div class="site-bar-card"><h3>Récapitulatif commande</h3><label><b>MODE CLAIR — couleur</b><input id="cardCartReviewLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardCartReviewLightOpacity" type="range" min="0" max="100" step="1" value="5"><output id="cardCartReviewLightOpacityValue">5%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardCartReviewDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardCartReviewDarkOpacity" type="range" min="0" max="100" step="1" value="4"><output id="cardCartReviewDarkOpacityValue">4%</output></label></div>
+              <div class="site-bar-card"><h3>Produit dans le panier</h3><label><b>MODE CLAIR — couleur</b><input id="cardCartItemLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardCartItemLightOpacity" type="range" min="0" max="100" step="1" value="4"><output id="cardCartItemLightOpacityValue">4%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardCartItemDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardCartItemDarkOpacity" type="range" min="0" max="100" step="1" value="3"><output id="cardCartItemDarkOpacityValue">3%</output></label></div>
+              <div class="site-bar-card"><h3>Informations de livraison</h3><label><b>MODE CLAIR — couleur</b><input id="cardDeliveryInfoLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardDeliveryInfoLightOpacity" type="range" min="0" max="100" step="1" value="6"><output id="cardDeliveryInfoLightOpacityValue">6%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardDeliveryInfoDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardDeliveryInfoDarkOpacity" type="range" min="0" max="100" step="1" value="5"><output id="cardDeliveryInfoDarkOpacityValue">5%</output></label></div>
+              <div class="site-bar-card"><h3>Mode de livraison</h3><label><b>MODE CLAIR — couleur</b><input id="cardDeliveryModeLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardDeliveryModeLightOpacity" type="range" min="0" max="100" step="1" value="4"><output id="cardDeliveryModeLightOpacityValue">4%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardDeliveryModeDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardDeliveryModeDarkOpacity" type="range" min="0" max="100" step="1" value="3"><output id="cardDeliveryModeDarkOpacityValue">3%</output></label></div>
+              <div class="site-bar-card"><h3>Paiement</h3><label><b>MODE CLAIR — couleur</b><input id="cardPaymentLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardPaymentLightOpacity" type="range" min="0" max="100" step="1" value="4"><output id="cardPaymentLightOpacityValue">4%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardPaymentDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardPaymentDarkOpacity" type="range" min="0" max="100" step="1" value="3"><output id="cardPaymentDarkOpacityValue">3%</output></label></div>
+              <div class="site-bar-card"><h3>Résumé de commande</h3><label><b>MODE CLAIR — couleur</b><input id="cardSummaryLightBg" type="color" value="#ffffff"></label><label><b>MODE CLAIR — transparence</b><input id="cardSummaryLightOpacity" type="range" min="0" max="100" step="1" value="6"><output id="cardSummaryLightOpacityValue">6%</output></label><label><b>MODE SOMBRE — couleur</b><input id="cardSummaryDarkBg" type="color" value="#ffffff"></label><label><b>MODE SOMBRE — transparence</b><input id="cardSummaryDarkOpacity" type="range" min="0" max="100" step="1" value="5"><output id="cardSummaryDarkOpacityValue">5%</output></label></div>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>3 avantages du produit</h2><p>Modifiez les 3 blocs affichés sous les boutons du produit. Chaque bloc accepte un titre, un texte court et une icône différente en mode clair et sombre (Emoji ou PNG).</p></div><span class="badge">3 BLOCS · LIGHT / DARK</span></div><div class="grid3 product-services-editor"><div class="feature-editor"><b>1 — AVANTAGE PRODUIT</b><label>Titre<input id="productServiceTitle1" type="text" maxlength="80" value="58 wilayas"></label><label>Texte court<input id="productServiceText1" type="text" maxlength="120" value="Livraison"></label><div class="feature-icon-pair"><div class="feature-icon-settings"><strong>Icône — MODE CLAIR (JOUR)</strong><select id="productServiceIconModeLight1"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="productServiceIconEmojiWrapLight1"><input id="productServiceIconLight1" type="text" maxlength="16" placeholder="🚚"></div><div id="productServiceIconPngWrapLight1" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="productServiceIconPngLight1" type="file" accept="image/png"></label></div><div id="productServiceIconPreviewLight1" class="store-icon-preview"></div></div><div class="feature-icon-settings"><strong>Icône — MODE SOMBRE (NUIT)</strong><select id="productServiceIconModeDark1"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="productServiceIconEmojiWrapDark1"><input id="productServiceIconDark1" type="text" maxlength="16" placeholder="🚚"></div><div id="productServiceIconPngWrapDark1" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="productServiceIconPngDark1" type="file" accept="image/png"></label></div><div id="productServiceIconPreviewDark1" class="store-icon-preview"></div></div></div></div><div class="feature-editor"><b>2 — AVANTAGE PRODUIT</b><label>Titre<input id="productServiceTitle2" type="text" maxlength="80" value="À la livraison"></label><label>Texte court<input id="productServiceText2" type="text" maxlength="120" value="Paiement"></label><div class="feature-icon-pair"><div class="feature-icon-settings"><strong>Icône — MODE CLAIR (JOUR)</strong><select id="productServiceIconModeLight2"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="productServiceIconEmojiWrapLight2"><input id="productServiceIconLight2" type="text" maxlength="16" placeholder="💳"></div><div id="productServiceIconPngWrapLight2" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="productServiceIconPngLight2" type="file" accept="image/png"></label></div><div id="productServiceIconPreviewLight2" class="store-icon-preview"></div></div><div class="feature-icon-settings"><strong>Icône — MODE SOMBRE (NUIT)</strong><select id="productServiceIconModeDark2"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="productServiceIconEmojiWrapDark2"><input id="productServiceIconDark2" type="text" maxlength="16" placeholder="💳"></div><div id="productServiceIconPngWrapDark2" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="productServiceIconPngDark2" type="file" accept="image/png"></label></div><div id="productServiceIconPreviewDark2" class="store-icon-preview"></div></div></div></div><div class="feature-editor"><b>3 — AVANTAGE PRODUIT</b><label>Titre<input id="productServiceTitle3" type="text" maxlength="80" value="DTF Premium"></label><label>Texte court<input id="productServiceText3" type="text" maxlength="120" value="Qualité"></label><div class="feature-icon-pair"><div class="feature-icon-settings"><strong>Icône — MODE CLAIR (JOUR)</strong><select id="productServiceIconModeLight3"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="productServiceIconEmojiWrapLight3"><input id="productServiceIconLight3" type="text" maxlength="16" placeholder="✓"></div><div id="productServiceIconPngWrapLight3" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="productServiceIconPngLight3" type="file" accept="image/png"></label></div><div id="productServiceIconPreviewLight3" class="store-icon-preview"></div></div><div class="feature-icon-settings"><strong>Icône — MODE SOMBRE (NUIT)</strong><select id="productServiceIconModeDark3"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="productServiceIconEmojiWrapDark3"><input id="productServiceIconDark3" type="text" maxlength="16" placeholder="✓"></div><div id="productServiceIconPngWrapDark3" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="productServiceIconPngDark3" type="file" accept="image/png"></label></div><div id="productServiceIconPreviewDark3" class="store-icon-preview"></div></div></div></div></div></div>
+
+          <div class="panel appearance-panel" id="sizeGuidesPanel"><div class="panel-title"><div><h2>GUIDE DES TAILLES</h2><p>Créez plusieurs guides. Chaque guide contient les deux sections dans le même cadre. Les noms des sections et leur contenu sont entièrement modifiables.</p></div><button class="admin-btn auto" id="addSizeGuide" type="button">+ AJOUTER UN GUIDE</button></div><div id="sizeGuidesList" class="size-guides-list"></div><div id="sizeGuideMsg"></div></div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>4 avantages de l’accueil</h2><p>Modifiez les textes et choisissez une icône différente en mode clair et en mode sombre. Emoji ou PNG transparent.</p></div><span class="badge">4 BLOCS · LIGHT / DARK</span></div>
+            <div class="feature-bar-settings" style="margin:14px 0;padding:14px;border:1px solid var(--admin-border,#333);border-radius:10px;background:rgba(255,255,255,.025)">
+              <div style="font-weight:800;margin-bottom:10px">Fond du bandeau « AVANTAGES DE L’ACCUEIL »</div>
+              <div class="grid2">
+                <label><b>MODE CLAIR — couleur</b><input id="featuresBarBgLight" type="color" value="#ffffff"></label>
+                <label><b>MODE CLAIR — transparence</b><input id="featuresBarOpacityLight" type="range" min="0" max="100" step="1" value="6"><output id="featuresBarOpacityLightValue">6%</output></label>
+                <label><b>MODE SOMBRE — couleur</b><input id="featuresBarBgDark" type="color" value="#ffffff"></label>
+                <label><b>MODE SOMBRE — transparence</b><input id="featuresBarOpacityDark" type="range" min="0" max="100" step="1" value="5"><output id="featuresBarOpacityDarkValue">5%</output></label>
+              </div>
+            </div>
+            <div class="grid2 home-features-editor">
+<div class="feature-editor"><b>1 — IMPRESSION DTF</b><label>Titre<input id="featureTitle1" type="text" maxlength="80"></label><label>Texte court<input id="featureText1" type="text" maxlength="120"></label><div class="feature-icon-pair"><div class="feature-icon-settings"><strong>Icône — MODE CLAIR (JOUR)</strong><select id="featureIconModeLight1"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapLight1"><input id="featureIconLight1" type="text" maxlength="16" placeholder="▣"></div><div id="featureIconPngWrapLight1" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngLight1" type="file" accept="image/png"></label></div><div id="featureIconPreviewLight1" class="store-icon-preview"></div></div><div class="feature-icon-settings"><strong>Icône — MODE SOMBRE (NUIT)</strong><select id="featureIconModeDark1"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapDark1"><input id="featureIconDark1" type="text" maxlength="16" placeholder="▣"></div><div id="featureIconPngWrapDark1" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngDark1" type="file" accept="image/png"></label></div><div id="featureIconPreviewDark1" class="store-icon-preview"></div></div></div></div><div class="feature-editor"><b>2 — TISSUS PREMIUM</b><label>Titre<input id="featureTitle2" type="text" maxlength="80"></label><label>Texte court<input id="featureText2" type="text" maxlength="120"></label><div class="feature-icon-pair"><div class="feature-icon-settings"><strong>Icône — MODE CLAIR (JOUR)</strong><select id="featureIconModeLight2"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapLight2"><input id="featureIconLight2" type="text" maxlength="16" placeholder="♢"></div><div id="featureIconPngWrapLight2" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngLight2" type="file" accept="image/png"></label></div><div id="featureIconPreviewLight2" class="store-icon-preview"></div></div><div class="feature-icon-settings"><strong>Icône — MODE SOMBRE (NUIT)</strong><select id="featureIconModeDark2"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapDark2"><input id="featureIconDark2" type="text" maxlength="16" placeholder="♢"></div><div id="featureIconPngWrapDark2" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngDark2" type="file" accept="image/png"></label></div><div id="featureIconPreviewDark2" class="store-icon-preview"></div></div></div></div><div class="feature-editor"><b>3 — LIVRAISON 58 WILAYAS</b><label>Titre<input id="featureTitle3" type="text" maxlength="80"></label><label>Texte court<input id="featureText3" type="text" maxlength="120"></label><div class="feature-icon-pair"><div class="feature-icon-settings"><strong>Icône — MODE CLAIR (JOUR)</strong><select id="featureIconModeLight3"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapLight3"><input id="featureIconLight3" type="text" maxlength="16" placeholder="▱"></div><div id="featureIconPngWrapLight3" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngLight3" type="file" accept="image/png"></label></div><div id="featureIconPreviewLight3" class="store-icon-preview"></div></div><div class="feature-icon-settings"><strong>Icône — MODE SOMBRE (NUIT)</strong><select id="featureIconModeDark3"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapDark3"><input id="featureIconDark3" type="text" maxlength="16" placeholder="▱"></div><div id="featureIconPngWrapDark3" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngDark3" type="file" accept="image/png"></label></div><div id="featureIconPreviewDark3" class="store-icon-preview"></div></div></div></div><div class="feature-editor"><b>4 — SERVICE CLIENT 7/7</b><label>Titre<input id="featureTitle4" type="text" maxlength="80"></label><label>Texte court<input id="featureText4" type="text" maxlength="120"></label><div class="feature-icon-pair"><div class="feature-icon-settings"><strong>Icône — MODE CLAIR (JOUR)</strong><select id="featureIconModeLight4"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapLight4"><input id="featureIconLight4" type="text" maxlength="16" placeholder="◌"></div><div id="featureIconPngWrapLight4" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngLight4" type="file" accept="image/png"></label></div><div id="featureIconPreviewLight4" class="store-icon-preview"></div></div><div class="feature-icon-settings"><strong>Icône — MODE SOMBRE (NUIT)</strong><select id="featureIconModeDark4"><option value="emoji">Emoji / symbole</option><option value="png">PNG personnalisé</option></select><div id="featureIconEmojiWrapDark4"><input id="featureIconDark4" type="text" maxlength="16" placeholder="◌"></div><div id="featureIconPngWrapDark4" style="display:none"><label class="upload-btn">↥ Choisir PNG<input id="featureIconPngDark4" type="file" accept="image/png"></label></div><div id="featureIconPreviewDark4" class="store-icon-preview"></div></div></div></div>
+            </div>
+          </div>
+
+          <div class="panel appearance-panel"><div class="panel-title"><div><h2>Images des catégories</h2><p>Personnalisez les images affichées dans « Choisis ta passion ».</p></div></div><div id="categoryMedia" class="media-grid"></div><div id="appearanceMsg"></div></div>
+        </div>
+        <aside class="appearance-side">
+          <div class="panel preview-panel"><h2>Aperçu (Hero)</h2><p>Voici un aperçu du rendu sur la page d’accueil.</p><div class="preview-label">☼ Mode clair</div><div id="heroSideLight" class="side-hero-preview"><span>PORTE CE<br>QUE TU<br>AIMES</span></div><div class="preview-label">☾ Mode sombre</div><div id="heroSideDark" class="side-hero-preview dark"></div></div>
+        </aside>
+      </div>
+      <div class="info-strip"><div><b>ⓘ Informations</b><ul><li>Logo : PNG transparent recommandé, environ 300 × 80 px. Vous pouvez mettre du texte complet en mode clair et une icône seule en mode sombre.</li><li>Image Hero recommandée : JPG, PNG ou WEBP, environ 1920 × 800 px.</li></ul></div><button type="button" class="btn-small" id="resetAppearance">↻ Réinitialiser aux valeurs par défaut</button></div>
+    </section>
+
+    <section id="categories" class="tab hidden">
+      <div class="top"><div><h1>Catégories</h1><p>Ajoutez, renommez, réorganisez et choisissez les 6 catégories affichées sur l’accueil.</p></div><button class="admin-btn auto" id="addCategory">+ AJOUTER UNE CATÉGORIE</button></div>
+      <div id="categoryMsg"></div>
+      <div class="panel category-home-panel"><div class="panel-title"><div><h2>Catégories affichées sur l’accueil</h2><p>Sélectionnez au maximum 6 catégories. Vous pouvez changer cette sélection à tout moment.</p></div><span class="badge" id="homeCategoryCount">0 / 6</span></div><div id="homeCategorySlots" class="home-category-slots"></div></div>
+      <div class="panel"><div class="panel-title"><div><h2>Toutes les catégories</h2><p>Nombre illimité. Les images se gèrent aussi dans <b>Apparence → Images des catégories</b>.</p></div></div><div id="categoriesList" class="categories-admin-list"></div></div>
+      <div id="categoryFormPanel" class="panel hidden"><h2 id="categoryFormTitle">Ajouter une catégorie</h2><form id="categoryForm"><input type="hidden" name="id"><div class="grid2"><label>🇫🇷 Nom de la catégorie — Français<input name="nameFr" required maxlength="80" placeholder="Ex. Anime"></label><label>🇩🇿 اسم التصنيف — العربية<input name="nameAr" maxlength="80" dir="rtl" placeholder="مثال: أنمي"></label><label>Ordre<input name="order" type="number" min="0" value="0"></label></div><div class="checks"><label><input name="active" type="checkbox" checked> Active</label><label><input name="showOnHome" type="checkbox"> Afficher sur l’accueil</label></div><div class="actions"><button class="admin-btn auto" type="submit">ENREGISTRER</button><button class="btn-small" type="button" id="cancelCategory">ANNULER</button></div></form></div>
+    </section>
+    <section id="pages" class="tab hidden">
+      <div class="top"><div><h1>Pages du magasin</h1><p>Modifiez séparément le contenu <b>Français</b> ou <b>العربية</b> de chaque page publique.</p></div><button class="save-main" id="savePages">▣ Enregistrer la langue active</button></div>
+      <div class="panel pages-language-panel"><div class="panel-title"><div><h2>🌐 Langue de modification</h2><p>Choisissez la langue que vous souhaitez modifier. Chaque langue possède son propre contenu.</p></div><span class="badge" id="pagesLanguageBadge">FRANÇAIS 🇫🇷</span></div><div class="language-edit-switch"><button type="button" class="btn-small pages-lang-btn active" data-pages-lang="fr">🇫🇷 Français</button><button type="button" class="btn-small pages-lang-btn" data-pages-lang="ar">🇩🇿 العربية</button></div><div id="pagesLanguageHint" class="hint" style="margin-top:10px">Vous modifiez actuellement la version française des pages.</div></div>
+      <div class="pages-admin-grid">
+        <div class="panel page-editor-card">
+          <div class="panel-title"><div><h2>À PROPOS</h2><p>Le contenu présenté aux visiteurs dans la page de présentation de votre marque.</p></div><span class="badge">PAGE PUBLIQUE</span></div>
+          <div class="grid2">
+            <label>Petit titre<input id="aboutEyebrow" maxlength="80"></label>
+            <label>Titre principal<input id="aboutTitle" maxlength="120"></label>
+          </div>
+          <label>Introduction<textarea id="aboutIntro" rows="4" maxlength="500"></textarea></label>
+          <div class="grid2">
+            <label>Titre — Notre histoire<input id="aboutStoryTitle" maxlength="120"></label>
+            <label>Titre — Notre mission<input id="aboutMissionTitle" maxlength="120"></label>
+          </div>
+          <div class="grid2">
+            <label>Notre histoire<textarea id="aboutStoryText" rows="7" maxlength="1800"></textarea></label>
+            <label>Notre mission<textarea id="aboutMissionText" rows="7" maxlength="1800"></textarea></label>
+          </div>
+          <div class="panel-subtitle"><b>Nos valeurs</b><small>3 cartes affichées sur la page.</small></div>
+          <div class="grid2">
+            <label>Valeur 1 — titre<input id="aboutValue1Title" maxlength="80"></label>
+            <label>Valeur 1 — texte<textarea id="aboutValue1Text" rows="3" maxlength="350"></textarea></label>
+            <label>Valeur 2 — titre<input id="aboutValue2Title" maxlength="80"></label>
+            <label>Valeur 2 — texte<textarea id="aboutValue2Text" rows="3" maxlength="350"></textarea></label>
+            <label>Valeur 3 — titre<input id="aboutValue3Title" maxlength="80"></label>
+            <label>Valeur 3 — texte<textarea id="aboutValue3Text" rows="3" maxlength="350"></textarea></label>
+          </div>
+          <div class="grid2">
+            <label>Bouton<input id="aboutCtaText" maxlength="80"></label>
+            <label>Lien du bouton<input id="aboutCtaLink" maxlength="250" placeholder="boutique.html"></label>
+          </div>
+        </div>
+
+        <div class="panel page-editor-card">
+          <div class="panel-title"><div><h2>CONTACT</h2><p>Coordonnées, horaires et texte de la page de contact.</p></div><span class="badge">PAGE PUBLIQUE</span></div>
+          <div class="grid2">
+            <label>Petit titre<input id="contactEyebrow" maxlength="80"></label>
+            <label>Titre principal<input id="contactTitle" maxlength="120"></label>
+          </div>
+          <label>Introduction<textarea id="contactIntro" rows="4" maxlength="500"></textarea></label>
+          <div class="grid2">
+            <label>Email<input id="contactEmail" type="email" maxlength="180"></label>
+            <label>Téléphone<input id="contactPhone" maxlength="80"></label>
+            <label>Adresse<input id="contactAddress" maxlength="250"></label>
+            <label>Horaires<input id="contactHours" maxlength="180"></label>
+          </div>
+          <div class="grid2">
+            <label>Titre du formulaire<input id="contactFormTitle" maxlength="120"></label>
+            <label>Bouton du formulaire<input id="contactFormButton" maxlength="80"></label>
+          </div>
+          <label>Message sous le formulaire<textarea id="contactFormNote" rows="3" maxlength="350"></textarea></label>
+          <div class="grid2">
+            <label>Facebook<input id="contactFacebook" maxlength="250"></label>
+            <label>Instagram<input id="contactInstagram" maxlength="250"></label>
+            <label>TikTok<input id="contactTiktok" maxlength="250"></label>
+            <label>Texte après envoi<input id="contactSuccess" maxlength="250"></label>
+          </div>
+          <div class="panel-subtitle" style="margin-top:18px"><b>Message après validation de la commande</b><small>Ce message apparaît après qu’une commande a été envoyée avec succès. Il est indépendant pour Français et العربية.</small></div>
+          <div class="grid2">
+            <label>Petit titre — commande confirmée<input id="orderSuccessTitle" maxlength="120"></label>
+            <label>Texte — numéro de commande<input id="orderSuccessOrderNumber" maxlength="250"></label>
+            <label>Texte — livraison<input id="orderSuccessDelivery" maxlength="250"></label>
+            <label>Texte — contact<input id="orderSuccessContact" maxlength="250"></label>
+            <label>Bouton retour accueil<input id="orderSuccessHomeButton" maxlength="100"></label>
+          </div>
+          <div id="pagesMsg"></div>
+        </div>
+      </div>
+      <div class="pages-admin-extra">
+        <div class="panel page-editor-card">
+          <div class="panel-title"><div><h2>CONDITIONS GÉNÉRALES</h2><p>Page publique accessible depuis le pied de page. Contenu entièrement modifiable.</p></div><span class="badge">PAGE PUBLIQUE</span></div>
+          <div class="grid2">
+            <label>Petit titre<input id="termsEyebrow" maxlength="80"></label>
+            <label>Titre principal<input id="termsTitle" maxlength="120"></label>
+          </div>
+          <label>Introduction<textarea id="termsIntro" rows="3" maxlength="700"></textarea></label>
+          <label>Contenu complet<textarea id="termsBody" rows="14" maxlength="12000" placeholder="Écrivez ici vos conditions générales..."></textarea></label>
+          <div class="grid2">
+            <label>Texte du bouton<input id="termsCtaText" maxlength="80"></label>
+            <label>Lien du bouton<input id="termsCtaLink" maxlength="250" placeholder="boutique.html"></label>
+          </div>
+        </div>
+        <div class="panel page-editor-card">
+          <div class="panel-title"><div><h2>COMMENT COMMANDER ?</h2><p>Page publique accessible depuis le pied de page. Contenu entièrement modifiable.</p></div><span class="badge">PAGE PUBLIQUE</span></div>
+          <div class="grid2">
+            <label>Petit titre<input id="howToOrderEyebrow" maxlength="80"></label>
+            <label>Titre principal<input id="howToOrderTitle" maxlength="120"></label>
+          </div>
+          <label>Introduction<textarea id="howToOrderIntro" rows="3" maxlength="700"></textarea></label>
+          <label>Contenu complet<textarea id="howToOrderBody" rows="14" maxlength="12000" placeholder="Écrivez les étapes de commande..."></textarea></label>
+          <div class="grid2">
+            <label>Texte du bouton<input id="howToOrderCtaText" maxlength="80"></label>
+            <label>Lien du bouton<input id="howToOrderCtaLink" maxlength="250" placeholder="boutique.html"></label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="settings" class="tab hidden">
+      <div class="top"><div><h1>Paramètres</h1><p>Connectez votre boutique à Google Sheets et Meta Pixel بدون وضع أي مفاتيح سرية في الواجهة.</p></div><button class="save-main" id="saveIntegrations">▣ Enregistrer</button></div>
+      <div id="integrationsMsg"></div><div class="panel store-texts-panel">
+        <div class="panel-title"><div><h2>📝 Textes du magasin — 100%</h2><p>Modifiez tous les textes visibles de la boutique : accueil, boutique, produit, panier, commande, contact, à propos, footer, boutons, placeholders et messages dynamiques.</p></div><span class="badge">GLOBAL · 100%</span></div>
+        <div class="store-texts-toolbar"><button type="button" class="btn-small" id="storeTextsLoadDefaults">↺ Restaurer les textes d’origine</button><button type="button" class="save-main" id="storeTextsSave">▣ Enregistrer tous les textes</button></div>
+        <div class="store-texts-controls"><input id="storeTextsSearch" type="search" placeholder="Rechercher un texte…"><select id="storeTextsCategory"><option value="">Toutes les pages</option><option value="ACCUEIL">Accueil</option><option value="BOUTIQUE">Boutique</option><option value="PRODUIT">Produit</option><option value="PANIER">Panier</option><option value="COMMANDE">Commande</option><option value="CONTACT">Contact</option><option value="ABOUT">À propos</option><option value="FOOTER">Footer</option><option value="DYNAMIQUE">Messages dynamiques</option><option value="GLOBAL">Global</option></select><span id="storeTextsCount" class="hint"></span></div>
+        <div id="storeTextsEditor" class="store-texts-editor"></div>
+        <details class="store-texts-advanced"><summary>Mode avancé — JSON</summary><textarea id="storeTextsJson" rows="18" spellcheck="false"></textarea></details>
+        <small class="hint">Les textes dynamiques utilisent des variables : <code>{{product}}</code>, <code>{{orderId}}</code>, <code>{{phone}}</code>, <code>{{delivery}}</code>, <code>{{price}}</code>, <code>{{size}}</code>, <code>{{quantity}}</code>.</small>
+        <div id="storeTextsMsg"></div></div>
+      <div class="panel store-font-size-panel">
+        <div class="panel-title"><div><h2>📐 Taille des écritures du magasin</h2><p>Contrôlez séparément la taille des petits textes et celle des grands titres dans tout le magasin.</p></div><span class="badge">PETIT · GRAND</span></div>
+        <div class="font-size-controls-grid">
+          <div class="font-size-control-card"><div class="font-size-control-head"><h3>Petit texte — <i>COURT</i></h3><span id="storeSmallFontSizeValue">100%</span></div><p class="hint">Descriptions, labels, informations, footer et textes secondaires.</p><div class="font-size-stepper"><button type="button" class="btn-small" id="storeSmallFontMinus">−</button><input id="storeSmallFontSize" type="range" min="80" max="125" step="1" value="100"><button type="button" class="btn-small" id="storeSmallFontPlus">+</button></div><button type="button" class="btn-small" id="storeSmallFontReset">↺ Réinitialiser</button></div>
+          <div class="font-size-control-card"><div class="font-size-control-head"><h3>Grand texte — <i>TITRES</i></h3><span id="storeLargeFontSizeValue">100%</span></div><p class="hint">Titres principaux, titres de sections, Hero et grands titres produits.</p><div class="font-size-stepper"><button type="button" class="btn-small" id="storeLargeFontMinus">−</button><input id="storeLargeFontSize" type="range" min="80" max="125" step="1" value="100"><button type="button" class="btn-small" id="storeLargeFontPlus">+</button></div><button type="button" class="btn-small" id="storeLargeFontReset">↺ Réinitialiser</button></div>
+        </div><div class="font-size-actions"><button type="button" class="save-main" id="storeFontSizesSave">▣ Enregistrer les tailles</button><span id="storeFontSizesMsg"></span></div>
+      </div>
+      <div class="panel store-font-panel">
+        <div class="panel-title"><div><h2>🔤 Police du magasin — 100%</h2><p>Importez un fichier <b>.TTF</b> et cette police sera appliquée à toutes les écritures visibles de la boutique : titres, textes, boutons, menus, formulaires, panier et pages.</p></div><span class="badge">TTF · TOUT LE MAGASIN</span></div>
+        <div class="store-font-grid">
+          <div class="store-font-upload">
+            <label class="upload-btn">↥ Choisir le fichier TTF<input id="storeFontFile" type="file" accept=".ttf,font/ttf,application/x-font-ttf"></label>
+            <div id="storeFontName" class="store-font-name">Aucune police personnalisée.</div>
+            <small class="hint">Maximum 10 MB. Le fichier est stocké dans Supabase Storage et sera chargé automatiquement sur toutes les pages publiques.</small>
+            <div class="actions" style="margin-top:12px"><button type="button" class="save-main" id="storeFontSave">▣ Enregistrer la police</button><button type="button" class="btn-small danger" id="storeFontDelete">♜ Supprimer la police</button></div>
+            <div id="storeFontMsg"></div>
+          </div>
+          <div class="store-font-preview-box"><div class="preview-label">APERÇU</div><div id="storeFontPreview" class="store-font-preview">ARTWEAR DZ — WEAR YOUR PASSION<br><span>PORTE CE QUE TU AIMES</span></div></div>
+        </div>
+      </div>
+      <div class="panel integration-panel">
+        <div class="panel-title"><div><h2>🔗 Intégrations du site</h2><p>Les paramètres sont enregistrés dans Supabase et restent actifs après Refresh.</p></div><span class="badge">OPTIONNEL</span></div>
+        <div class="integration-card">
+          <div class="integration-heading"><h3>Google Sheets</h3><span>Commandes</span></div>
+          <p>Utilisez l’URL de votre <b>Google Apps Script Web App</b> pour envoyer automatiquement chaque commande vers votre feuille Google Sheets.</p>
+          <label>URL Google Apps Script Web App<input id="googleSheetsUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"></label>
+          <small class="hint">Ne mettez pas l’URL normale de la feuille Google Sheets : il faut déployer le fichier <code>apps-script/Code.gs</code> comme Web App.</small>
+          <div class="integration-status" id="googleSheetsStatus">Non configuré</div>
+        </div>
+        <div class="integration-card">
+          <div class="integration-heading"><h3>Meta Pixel</h3><span>Facebook / Instagram</span></div>
+          <p>Entrez uniquement votre <b>Pixel ID</b>. Le site enverra automatiquement PageView, ViewContent, AddToCart, InitiateCheckout et Purchase.</p>
+          <label>Meta Pixel ID<input id="metaPixelId" type="text" inputmode="numeric" maxlength="32" placeholder="123456789012345" autocomplete="off"></label>
+          <small class="hint">Le Pixel ID est public et n’est pas un mot de passe. Vous pouvez le trouver dans Meta Events Manager.</small>
+          <div class="integration-status" id="metaPixelStatus">Non configuré</div>
+        </div>
+      </div>
+      <div class="panel social-links-panel"><div class="panel-title"><div><h2>🔗 Liens des réseaux sociaux</h2><p>Ajoutez le lien de votre page Facebook, Instagram et TikTok. Le clic sur l’icône correspondante dans la boutique ouvrira ce lien.</p></div><span class="badge">FACEBOOK · INSTAGRAM · TIKTOK</span></div>
+        <div class="social-links-grid">
+          <label><b>FACEBOOK</b><input id="socialFacebookUrl" type="url" placeholder="https://facebook.com/votre-page" autocomplete="off"></label>
+          <label><b>INSTAGRAM</b><input id="socialInstagramUrl" type="url" placeholder="https://instagram.com/votre-compte" autocomplete="off"></label>
+          <label><b>TIKTOK</b><input id="socialTiktokUrl" type="url" placeholder="https://tiktok.com/@votre-compte" autocomplete="off"></label>
+        </div>
+        <small class="social-links-help">Vous pouvez écrire l’adresse complète avec <b>https://</b>. Si vous l’omettez, elle sera ajoutée automatiquement.</small>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><div><h2>Google Apps Script</h2><p>Le projet contient déjà un script prêt pour les commandes.</p></div></div>
+        <ol class="integration-steps"><li>Ouvrez votre Google Sheet.</li><li>Extensions → Apps Script.</li><li>Copiez <code>apps-script/Code.gs</code> du ZIP.</li><li>Déployez → Nouveau déploiement → Application Web.</li><li>Exécuter en tant que vous-même et autoriser l’accès selon votre besoin.</li><li>Copiez l’URL <code>/exec</code> dans le champ Google Sheets ci-dessus.</li></ol>
+      </div>
+      <div class="panel"><p>Les paramètres Supabase et les accès administrateur restent gérés depuis votre projet Supabase.</p></div>
+    </section>
+  </main>
+</div>
+<script src="../js/store-texts.js?v=1"></script>
+<script src="js/admin.js?v=38"></script>
+  <script src="icon-mode.js"></script>
+<script src="all-ui-icons-v24.js"></script>
+<script src="search-theme-icons-v25.js"></script>
+<script src="theme-light-dark-icons-v27.js"></script>
+<script src="categories-management-v29.js"></script>
+<script src="commandes-status-filter-v39.js"></script>
+  <script src="page-transition.js"></script>
+</body></html>
